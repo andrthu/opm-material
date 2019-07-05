@@ -144,14 +144,14 @@ public:
         void setRegionIndex(unsigned val)
         { regionIdx_ = val; }
 
-        const Scalar maxOilSat() const
+        const Evaluation& maxOilSat() const
         { return maxOilSat_; }
 
-        void setMaxOilSat(Scalar val)
+        void setMaxOilSat(const Evaluation& val)
         { maxOilSat_ = val; }
 
     private:
-        Scalar maxOilSat_;
+        Evaluation maxOilSat_;
         unsigned regionIdx_;
     };
 
@@ -199,7 +199,7 @@ public:
         setReservoirTemperature(eclState.getTableManager().rtemp());
 
         // this fluidsystem only supports two or three phases
-        assert(numActivePhases_ >= 2 && numActivePhases_ <= 3);
+        assert(numActivePhases_ >= 1 && numActivePhases_ <= 3);
 
         setEnableDissolvedGas(deck.hasKeyword("DISGAS"));
         setEnableVaporizedOil(deck.hasKeyword("VAPOIL"));
@@ -1000,7 +1000,7 @@ public:
     static LhsEval saturatedDissolutionFactor(const FluidState& fluidState,
                                               unsigned phaseIdx,
                                               unsigned regionIdx,
-                                              Scalar maxOilSaturation)
+                                              const LhsEval& maxOilSaturation)
     {
         assert(0 <= phaseIdx && phaseIdx <= numPhases);
         assert(0 <= regionIdx && regionIdx <= numRegions());

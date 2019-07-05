@@ -310,8 +310,33 @@ public:
     { return Evaluation(); }
 {% endif %}\
 
+    // create an Evaluation with value and all the derivatives to be zero
+{% if numDerivs < 0 %}\
+    static Evaluation createConstantZero(const Evaluation& x)
+    { return Evaluation(x.size(), 0.0); }
+{% else %}\
+    static Evaluation createConstantZero(const Evaluation& x OPM_UNUSED)
+    { return Evaluation(0.); }
+{% endif %}\
+
+    // create an Evaluation with value to be one and all the derivatives to be zero
+{% if numDerivs < 0 %}\
+    static Evaluation createConstantOne(const Evaluation& x)
+    { return Evaluation(x.size(), 1.); }
+{% else %}\
+    static Evaluation createConstantOne(const Evaluation& x OPM_UNUSED)
+    { return Evaluation(1.); }
+{% endif %}\
+
     // create a function evaluation for a "naked" depending variable (i.e., f(x) = x)
 {% if numDerivs < 0 %}\
+    template <class RhsValueType>
+    static Evaluation createVariable(const RhsValueType& value OPM_UNUSED, int varPos OPM_UNUSED)
+    {
+        throw std::logic_error("Dynamically sized evaluations require that the number of "
+                               "derivatives is specified when creating an evaluation");
+    }
+
     template <class RhsValueType>
     static Evaluation createVariable(int nVars, const RhsValueType& value, int varPos)
     {
@@ -319,9 +344,37 @@ public:
         // which is represented by the value (which is set to 1.0)
         return Evaluation(nVars, value, varPos);
     }
+
+    template <class RhsValueType>
+    static Evaluation createVariable(const Evaluation& x, const RhsValueType& value, int varPos)
+    {
+        // copy function value and set all derivatives to 0, except for the variable
+        // which is represented by the value (which is set to 1.0)
+        return Evaluation(x.size(), value, varPos);
+    }
 {% else %}\
     template <class RhsValueType>
     static Evaluation createVariable(const RhsValueType& value, int varPos)
+    {
+        // copy function value and set all derivatives to 0, except for the variable
+        // which is represented by the value (which is set to 1.0)
+        return Evaluation(value, varPos);
+    }
+
+    template <class RhsValueType>
+    static Evaluation createVariable(int nVars, const RhsValueType& value, int varPos)
+    {
+        if (nVars != {{numDerivs}})
+            throw std::logic_error("This statically-sized evaluation can only represent objects"
+                                   " with {{numDerivs}} derivatives");
+
+        // copy function value and set all derivatives to 0, except for the variable
+        // which is represented by the value (which is set to 1.0)
+        return Evaluation(nVars, value, varPos);
+    }
+
+    template <class RhsValueType>
+    static Evaluation createVariable(const Evaluation& x OPM_UNUSED, const RhsValueType& value, int varPos)
     {
         // copy function value and set all derivatives to 0, except for the variable
         // which is represented by the value (which is set to 1.0)
@@ -338,11 +391,46 @@ public:
     {
         return Evaluation(nVars, value);
     }
-{% else %}\
+
     // "evaluate" a constant function (i.e. a function that does not depend on the set of
     // relevant variables, f(x) = c).
     template <class RhsValueType>
     static Evaluation createConstant(const RhsValueType& value)
+    {
+        throw std::logic_error("Dynamically-sized evaluation objects require to specify the number of derivatives.");
+    }
+
+    // "evaluate" a constant function (i.e. a function that does not depend on the set of
+    // relevant variables, f(x) = c).
+    template <class RhsValueType>
+    static Evaluation createConstant(const Evaluation& x, const RhsValueType& value)
+    {
+        return Evaluation(x.size(), value);
+    }
+{% else %}\
+    // "evaluate" a constant function (i.e. a function that does not depend on the set of
+    // relevant variables, f(x) = c).
+    template <class RhsValueType>
+    static Evaluation createConstant(int nVars, const RhsValueType& value)
+    {
+        if (nVars != {{numDerivs}})
+            throw std::logic_error("This statically-sized evaluation can only represent objects"
+                                   " with {{numDerivs}} derivatives");
+        return Evaluation(value);
+    }
+
+    // "evaluate" a constant function (i.e. a function that does not depend on the set of
+    // relevant variables, f(x) = c).
+    template <class RhsValueType>
+    static Evaluation createConstant(const RhsValueType& value)
+    {
+        return Evaluation(value);
+    }
+
+    // "evaluate" a constant function (i.e. a function that does not depend on the set of
+    // relevant variables, f(x) = c).
+    template <class RhsValueType>
+    static Evaluation createConstant(const Evaluation& x OPM_UNUSED, const RhsValueType& value)
     {
         return Evaluation(value);
     }
